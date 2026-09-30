@@ -39,8 +39,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
-
+The FitFindr is an AI agent that takes a user's request and searches the available clothing listings for matching clothings. If clothing matching the user's description is found, the agents will then suggest outfits that goes well with the clothing. In the last step, the agent will geneate a fit card for the user, which can be posted on social media. 
 
 
 ---
