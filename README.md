@@ -58,24 +58,24 @@ The FitFindr is an AI agent that takes a user's request and searches the availab
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Search the listings data for items matching a description, and optionally a size and a price ceiling.
+- **Inputs:** 'description' (str), 'size' (str or None), 'max_price' (float or None)
+- **Returns:** A list of matching listing dicts, which includes id, title, description, category, style_tags (list), size, condition, price (float), colors (list), brand (str or None), and platform for each listing dict.
+- **When it has nothing:** This method will return an empty list when nothing matches.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** This method suggest one or two outfits based on the input thrifted item and the user's wardrobe.
+- **Inputs:** 'new_item' (dict), 'wardrobe' (dict), 'items' (list) in wardrobe
+- **Returns:** A non-empty string with one or two outfit suggestions.
+- **When it has nothing:** If the wardrobe is empty, return some general styling advice.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** This method writes a short captions for the item the user searched for, and the outfit suggestions from the method suggest_outfit.
+- **Inputs:** 'outfit' (str), 'new_item' (dict)
+- **Returns:** A two to four sentence talking about the item, and the suggested outfits in social media post format.
+- **When it has nothing:** If the suggested outfit is empty or whitespace, a descriptive message will be returned. 
 
 ---
 
@@ -92,13 +92,13 @@ The FitFindr is an AI agent that takes a user's request and searches the availab
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If the wardrobe which is an input for 'suggest_outfit' is empty, return general styling advice, and pass the result to 'create_fit_card'. Otherwise, take recommended outfit result and go to 'create_fit_card'
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** The query is sent to the model to parse the parameters including 'description', 'size', and 'max_price'. The result will then be saved into session["parsed"].
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** First, the query is parsed then saved into session["parsed"]. Second, 'search_listing' is called with what is parsed as input, and the generated result from 'search_listing' will be saved into session["search_results"]. If the result from 'search_listing' is "no results", input a message in session["error"]. Third, an item should be selected from the 'search_listing' and saved to session["selected_item"]. Fourth, 'suggest_outfit' will be called and the results will be saved in session["outfit_suggestion"]. Lastly, 'create_fit_card' is called and the result is saved into session["fit_card"]
 
 ---
 
