@@ -94,11 +94,13 @@ The FitFindr is an AI agent that takes a user's request and searches the availab
 
 **Branch rule:** If the wardrobe which is an input for 'suggest_outfit' is empty, return general styling advice, and pass the result to 'create_fit_card'. Otherwise, take recommended outfit result and go to 'create_fit_card'
 
+If search_listings returns an empty list, put a message in the session and stop. Otherwise take the first result and go to suggest_outfit.
+
 **Where it lives:** `agent.py::run_agent`
 
 **How the query is parsed:** The query is sent to the model to parse the parameters including 'description', 'size', and 'max_price'. The result will then be saved into session["parsed"].
 
-**What moves through the session:** First, the query is parsed then saved into session["parsed"]. Second, 'search_listing' is called with what is parsed as input, and the generated result from 'search_listing' will be saved into session["search_results"]. If the result from 'search_listing' is "no results", input a message in session["error"]. Third, an item should be selected from the 'search_listing' and saved to session["selected_item"]. Fourth, 'suggest_outfit' will be called and the results will be saved in session["outfit_suggestion"]. Lastly, 'create_fit_card' is called and the result is saved into session["fit_card"]
+**What moves through the session:** First, the query is parsed then saved into session["parsed"]. Second, 'search_listing' is called with what is parsed as input, and the generated result from 'search_listing' will be saved into session["search_results"]. If the result from 'search_listing' is "no results", input a message in session["error"]. Third, an item should be selected from the 'search_listing' and saved to session["selected_item"]. Fourth, 'suggest_outfit' will be called and the results will be saved in session["outfit_suggestion"]. Lastly, 'create_fit_card' is called and the result is saved into session["fit_card"]. 
 
 ---
 
