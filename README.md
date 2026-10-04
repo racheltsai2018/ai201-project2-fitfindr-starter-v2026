@@ -46,16 +46,6 @@ The FitFindr is an AI agent that takes a user's request and searches the availab
 
 ## Tool Inventory
 
-<!-- Four lines per tool. This is worth 2 points and it's the single most
-     common place students lose them.
-
-     "Returns a list" earns NOTHING. The description has to say what is IN
-     the list.
-
-     The empty case isn't optional either — it's the thing your loop branches
-     on, and if you don't decide it here you'll discover it as a crash in
-     Milestone 5. -->
-
 ### `search_listings`
 
 - **What it does:** Search the listings data for items matching a description, and optionally a size and a price ceiling.
@@ -92,11 +82,11 @@ The FitFindr is an AI agent that takes a user's request and searches the availab
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:** If the wardrobe which is an input for 'suggest_outfit' is empty, return general styling advice, and pass the result to 'create_fit_card'. Otherwise, take recommended outfit result and go to 'create_fit_card'
+**Branch rule:**  If search_listings returns an empty list, put a message in the session and stop. Otherwise take the first result and go to suggest_outfit.
 
-If search_listings returns an empty list, put a message in the session and stop. Otherwise take the first result and go to suggest_outfit.
+If the wardrobe which is an input for 'suggest_outfit' is empty, return general styling advice, and pass the result to 'create_fit_card'. Otherwise, take recommended outfit result and go to 'create_fit_card'
 
-**Where it lives:** `agent.py::run_agent`
+**Where it lives:** `agent.py::run_agent` (the search listing branch rule) and `tools.py::suggest_outfit` (suggest outfit branch rule)
 
 **How the query is parsed:** The query is sent to the model to parse the parameters including 'description', 'size', and 'max_price'. The result will then be saved into session["parsed"].
 
@@ -116,28 +106,46 @@ If search_listings returns an empty list, put a message in the session and stop.
 ```
 $ python app.py ask '...'
 
+Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   * **Y2K Streetwear Contrast:** Pair the pink-and-purple butterfly baby tee with your baggy dark-wash straight-leg jeans to balance the cropped silhouette with a relaxed, low-key bottom. Layer the slightly cropped vintage black denim jacket on top, and finish the look with your chunky white sneakers and the black crossbody bag. 
+* **Model-Off-Duty Casual:** Tuck the baby tee into your wide-leg khaki trousers, defined by the brown leather belt to pull in the earth tones. Throw your oversized grey crewneck sweatshirt overyour shoulders or wear it open, and anchor the outfit with your chunky white sneakers for an effortless, texture-mixed everyday vibe.
+
+  Fit card: scored this absolute dream of a butterfly baby tee on depop for $18 and I’m literally obsessed. styled it with baggy dark-wash denim and a heavy black jacket for that perfect y2k contrast. honestly such a good find for the rotation.
 ```
 
 **The three tools, tested one at a time**
 
+**1. `search_listings`**
+
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
 
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.','category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'},
+ {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'},
+ {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'},
+ {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'},
+ {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'},
+ {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}]
 ```
-[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.','category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}]
+
+**2. `suggest_outfit`**
 
 ```
 $ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
 
-```
 * **The Casual Sporty Look:** Tuck your white ribbed tank top into the vintage Levi's 501 jeans, cinched at the waist with the brown leather belt. Layer the black cropped zip hoodie on top, and finish the outfit with the chunky white sneakers and the black crossbody bag for an easy, street-style-ready daytime vibe.
 * **The Grunge Contrast Look:** Pair the Levi's 501 jeans with the oversized grey crewneck sweatshirt let loose over the waistband. Add the vintage black denim jacket as a layer, ground the outfit with the black combat boots, and sling the black crossbody bag across your chest for a cool, textured mix of denim and grey.
+```
+
+**3. `create_fit_card`**
 
 ```
 $ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
 
-```
 Finally tracked down the ultimate pair of vintage Levi's 501 jeans on Depop for just $38. The knee fading is so good and they just fit right. Tossed them on with fresh white sneakers for that effortlessly lazy Sunday running errands look.
+```
+
 ---
 
 ## How I Used AI
@@ -151,15 +159,15 @@ Finally tracked down the ultimate pair of vintage Levi's 501 jeans on Depop for 
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked claude to help me with parsing the query.
+- *What came back:* I wrote a method with parsing the query with Regex.
+- *What I changed:* However, I wanted to parse with the model, so another method for parsing with the model is written with the prompt, and parsing with regex is used as a backup method when the model is not accessible. 
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked Claude to help me the `agent.py::run_agent` method. 
+- *What came back:* Since it was not specified when entering the prompt, Claude passed arguments directly between function calls instead of storing them in the session. 
+- *What I changed:* Instead of passing the arguments directly between function calls, the values are saved to the session and retrieved from session. 
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
