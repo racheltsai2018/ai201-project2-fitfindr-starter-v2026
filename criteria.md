@@ -80,7 +80,7 @@ The reason 280 characters is selected as the limit because in the description it
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
-When the model cannot be reached, the system will fall back to string splitting to retrieve the parameters in 5 of 5 tries. 
+When the model cannot be reached, the system will fall back to regex to retrieve the parameters in 5 of 5 tries. 
 
 **Why this target:**
 This criteria ensures that if the model does not work, the fall back method will be used 100% of the time. To ensure the reliability of the agent, the fallback system will still retrieve the 'description', 'size', and 'max_price' when the model is not working 100% of the time. If it does not work even 1 out of 5 tries, it will show on the UI making it less reliable. 
