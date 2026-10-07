@@ -251,20 +251,102 @@ that produced it:
 **Happy path**
 
 ```
+Command: python app.py ask 'vintage graphic tee under $30'
+Results:
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: dict with keys: description, size, max_price
+      →    parsed by model
+[2] select_item
+      in:  10 results
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    selected first result
+[3] suggest_outfit
+      in:  dict with keys: item, wardrobe_items
+      out: * **Y2K Streetwear Contrast:** Pair the pink-and-purple butterfly baby tee with your baggy dark-wash straight-…
+[4] create_fit_card
+      in:  dict with keys: item, outfit
+      out: scored this adorable little y2k butterfly baby tee on depop for eighteen dollars and i’m obsessed. paired it w…
+
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   * **Y2K Streetwear Contrast:** Pair the pink-and-purple butterfly baby tee with your baggy dark-wash straight-leg jeans to balance the cropped silhouette with a relaxed, low-key bottom. Layer the slightly cropped vintage black denim jacket on top, and finish the look with your chunky white sneakers and the black crossbody bag. 
+* **Model-Off-Duty Casual:** Tuck the baby tee into your wide-leg khaki trousers, defined by the brown leather belt to pull in the earth tones. Throw your oversized grey crewneck sweatshirt over your shoulders or wear it open, and anchor the outfit with your chunky white sneakers for an effortless, texture-mixed everyday vibe.
+
+  Fit card: scored this adorable little y2k butterfly baby tee on depop for eighteen dollars and i’m obsessed. paired it with baggy dark-wash denim and a black jacket for that perfect casual streetwear contrast.
 
 ```
 
 **Empty search**
 
 ```
+Command: python app.py ask 'Suit size M under $10'
 
+Results:
+
+ [1] parse_query
+      in:  Suit size M under $10
+      out: dict with keys: description, size, max_price
+      →    parsed by model
+[2] search_listings (with MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    branch: empty, stopping
+
+  Nothing matched "suit" in size M under $10. You could raise your budget above $10, or drop the size filter (size M), or try broader or different words than "suit".
+```
+
+**Empty wardrobe**
+```
+Command: python app.py ask 'vintage graphic tee under $30' --empty-wardrobe
+
+Results:
+(running with an empty wardrobe)
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: dict with keys: description, size, max_price
+      →    parsed by model
+[2] select_item
+      in:  10 results
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+      →    selected first result
+[3] suggest_outfit
+      in:  dict with keys: item, wardrobe_items
+      out: * **90s Streetwear Vibe:** Pair the baby tee with baggy, mid-rise light-wash denim carpenter jeans to balance …
+[4] create_fit_card
+      in:  dict with keys: item, outfit
+      out: Found this literal dream of a Y2K butterfly baby tee on depop for just $18 and I am never taking it off. It’s …
+
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   * **90s Streetwear Vibe:** Pair the baby tee with baggy, mid-rise light-wash denim carpenter jeans to balance the fitted crop top. Finish the look with chunky white platform sneakers, a small pastel pink shoulder bag, and wire-rimmed sunglasses.
+* **Cozy Cottagecore Twist:** Tuck the tee into a moss-green corduroy A-line mini skirt. Layer an oversized, cream-colored chunky cable-knit cardigan on top, and wear it with cream ribbedcrew socks and dark brown leather Mary Jane flats.
+
+  Fit card: Found this literal dream of a Y2K butterfly baby tee on depop for just $18 and I am never taking it off. It’s giving major early 2000s mallrat energy paired with baggy mid-rise carpenter jeans and chunky sneakers. Honestly might switch it up next time with a corduroy mini skirt and Mary Janes for a cozier vibe.
+```
+
+**Unavailable model**
+```
+Command: python app.py ask 'flannel shirt under $30'
+
+Results:
+[1] parse_query
+      in:  flannel shirt under $30
+      out: dict with keys: description, size, max_price
+      →    parsed by regex
+[2] select_item
+      in:  2 results
+      out: Oversized Flannel Shirt — Plaid Red/Black ($22.0, thredUp)
+      →    selected first result
+2 model calls this session
+
+ModelUnavailable: The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com.
 ```
 
 **On the MCP move:** <!-- what changed in your code, and whether anything
 behaved differently afterwards. If the rewire didn't work, say exactly where it
 broke — the error text and the last thing that worked. That earns the point in
 full. -->
-
 
 
 ---
