@@ -52,14 +52,16 @@ def run_once(scenario, use_trace=True):
 
     record = {"error": None, "session": None, "trace": "", "crashed": None}
 
-    # "model_offline": True simulates the model being unreachable for this
-    # scenario only, by making every model call fail as a connection would.
-    import generate as generate_module
-    real_get_client = generate_module._get_client
+    # "model_offline": True simulates the model being unreachable during query
+    # parsing only. agent.py's own `generate` is used only by parse_query, so
+    # swapping it leaves suggest_outfit and create_fit_card (tools.py) online.
+    import agent as agent_module
+    from generate import ModelUnavailable
+    real_generate = agent_module.generate
     if scenario.get("model_offline"):
-        def _unreachable():
-            raise ConnectionError("simulated: model unreachable")
-        generate_module._get_client = _unreachable
+        def _unreachable(*args, **kwargs):
+            raise ModelUnavailable("simulated: model unreachable during parsing")
+        agent_module.generate = _unreachable
 
     try:
         record["session"] = run_agent(scenario["query"], wardrobe)
@@ -67,7 +69,7 @@ def run_once(scenario, use_trace=True):
         record["crashed"] = f"{type(exc).__name__}: {exc}"
         record["traceback"] = traceback.format_exc()
     finally:
-        generate_module._get_client = real_get_client
+        agent_module.generate = real_generate
 
     if use_trace:
         record["trace"] = trace_module.get_trace()

@@ -374,14 +374,14 @@ ModelUnavailable: Couldn't reach the model: simulated: model unreachable
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 | Full three-tool run returns a fit card |  |  |  |
-| 2 | Empty search stops before tool 2 |  |  |  |
-| 3 | Tracked session state across five runs to verify that the ID, title, and description from the search results accurately persists as input for suggest_outfit |  |  |  |
-| 4 | Generated fit card caption include both the target and suggest outfit while keeping the caption under 280 characters |  |  |  |
-| 5 | When model cannot be reached, system will fall back to regex |  |  |  |
+| 1 | Full three-tool run returns a fit card | 4 of 5 | MET | If everything is working, the three-tool always return a fit card. For all tries, it passed so the verdict is met. |
+| 2 | Empty search stops before tool 2 | 5 of 5 | MET | For all tries, if the search_listing method is unable to find suitable clothing pieces, it stops before tool 2. |
+| 3 | Tracked session state across five runs to verify that the ID, title, and description from the search results accurately persists as input for suggest_outfit | 5 of 5 | MET | The results are saved to session and then passed to suggest_outfit by fetching from the data saved in session 5 out of 5 times so the criteria is met. |
+| 4 | Generated fit card caption include both the target and suggest outfit while keeping the caption under 280 characters | 4 of 5 | MISSED | Out of the five tries, only two tried passed. The reason is the caption are not under 280 character for three tries. |
+| 5 | When model cannot be reached, system will fall back to regex | 5 of 5 | MET | Whenever the model cannot be reached when parsing, the system always fall back to regex for parsing for 5 of 5 tries. |
 
 **Diagnoses**
-
+The fit card criterion missed on 3 of 5 tries. In 3 tries, the caption were generated as intended. However, the number of chracters for the 3 tries were over 280 characters. The reason for this miss is because the prompt is not specific enough. In the prompt, it was mentioned that the caption should be 2-4 sentence, but there was no mention of the caption needs to be under 280 characters. When fixing the prompt, it also needs to be mentioned that whether the 280 characters include spaces or not because it could make a huge difference. If we are following the rules from twitter then spaces will be included in the 280 characters.
 
 
 ---
