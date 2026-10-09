@@ -51,11 +51,23 @@ def run_once(scenario, use_trace=True):
         trace_module.start_trace()
 
     record = {"error": None, "session": None, "trace": "", "crashed": None}
+
+    # "model_offline": True simulates the model being unreachable for this
+    # scenario only, by making every model call fail as a connection would.
+    import generate as generate_module
+    real_get_client = generate_module._get_client
+    if scenario.get("model_offline"):
+        def _unreachable():
+            raise ConnectionError("simulated: model unreachable")
+        generate_module._get_client = _unreachable
+
     try:
         record["session"] = run_agent(scenario["query"], wardrobe)
     except Exception as exc:  # noqa: BLE001 — a crash is a result worth logging
         record["crashed"] = f"{type(exc).__name__}: {exc}"
         record["traceback"] = traceback.format_exc()
+    finally:
+        generate_module._get_client = real_get_client
 
     if use_trace:
         record["trace"] = trace_module.get_trace()

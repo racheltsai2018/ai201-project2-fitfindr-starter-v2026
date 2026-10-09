@@ -133,6 +133,9 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                 "size": parsed["size"],
                 "max_price": parsed["max_price"],
             })
+            print(f"[search_listings] {len(session['search_results'])} result(s):")
+            for r in session["search_results"]:
+                print(f"  - id={r.get('id')} | {r.get('title')} | {r.get('description')}")
 
             # THE BRANCH: nothing matched, so stop here instead of styling nothing.
             if not session["search_results"]:
@@ -152,6 +155,8 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         elif next_step == "suggest":
             # suggest_outfit handles the empty-wardrobe case itself
             # (general styling advice), so both wardrobe paths continue here.
+            item = session["selected_item"]
+            print(f"[suggest_outfit input] id={item.get('id')} | {item.get('title')} | {item.get('description')}")
             session["outfit_suggestion"] = suggest_outfit(
                 session["selected_item"], session["wardrobe"]
             )
@@ -163,6 +168,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             session["fit_card"] = create_fit_card(
                 session["outfit_suggestion"], session["selected_item"]
             )
+            print(f"[create_fit_card] caption ({len(session['fit_card'] or '')} chars): {session['fit_card']}")
             trace.step("create_fit_card", inputs={"item": session["selected_item"].get("title"), "outfit": session["outfit_suggestion"]}, returned=session["fit_card"])
             next_step = "done"
 
