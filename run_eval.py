@@ -211,7 +211,9 @@ def write_report(rows, args):
                 lines += ["Outfit suggestion:", "", "```",
                           str(session["outfit_suggestion"]), "```", ""]
             if session.get("fit_card"):
-                lines += ["Fit card:", "", "```", str(session["fit_card"]), "```", ""]
+                card = str(session["fit_card"])
+                lines += ["Fit card:", "", "```", card, "```", "",
+                          f"- Character count (including spaces): {len(card)}", ""]
             if record["trace"]:
                 lines += ["Trace:", "", "```", record["trace"], "```", ""]
 

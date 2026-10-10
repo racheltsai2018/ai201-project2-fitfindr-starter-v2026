@@ -301,7 +301,10 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         "(they are not selling it). Mention the item, its price, and the "
         "platform exactly once each. Be specific about the vibe of the outfit. "
         "No hashtag walls, no product-description tone, no quotation marks "
-        "around the caption."
+        "around the caption. "
+        # Ask for less than the hard limit so most replies fit on the first try.
+        f"Keep the whole caption under {config.FIT_CARD_MAX_CHARS - 40} characters, "
+        "counting spaces."
     )
     system = (
         "You write casual, authentic captions for thrift-haul posts. Sound like "
@@ -310,7 +313,38 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     # cache=False so the same item gets a fresh caption each time.
     response = generate(prompt, system=system, cache=False).strip()
 
+    # Too long: ask the model to shorten it, a limited number of times.
+    for _ in range(config.FIT_CARD_RETRIES):
+        if len(response) <= config.FIT_CARD_MAX_CHARS:
+            break
+        shorten = (
+            f"This caption is {len(response)} characters. Rewrite it in under "
+            f"{config.FIT_CARD_MAX_CHARS - 40} characters, counting spaces. Keep "
+            f"the item, the price ({price_text}), and the platform ({platform}). "
+            f"Return only the caption.\n\n{response}"
+        )
+        response = generate(shorten, system=system, cache=False).strip()
+
     # Keep the contract: always return a usable caption.
     if not response:
-        return f"Thrifted this {title} on {platform} for {price_text} and I'm obsessed with how it styles."
-    return response
+        response = f"Thrifted this {title} on {platform} for {price_text} and I'm obsessed with how it styles."
+    return _trim_caption(response, config.FIT_CARD_MAX_CHARS)
+
+
+def _trim_caption(text: str, limit: int) -> str:
+    """
+    Last line of defence for the length limit. Cut at the last full sentence
+    that fits; if no sentence fits, cut at a word boundary and add "…".
+    """
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+
+    # Last sentence end (. ! ?) at or before the limit.
+    cut = max(text.rfind(p, 0, limit) for p in ".!?")
+    if cut > 0:
+        return text[: cut + 1].strip()
+
+    # No sentence fits: cut at a space, leaving room for the ellipsis.
+    cut = text.rfind(" ", 0, limit - 1)
+    return text[: cut if cut > 0 else limit - 1].rstrip(" ,;:-") + "…"

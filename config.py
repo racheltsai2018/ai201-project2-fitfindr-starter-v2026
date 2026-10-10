@@ -61,6 +61,12 @@ MAX_ITERATIONS = 10
 # How many search results to consider. The agent uses the first one.
 SEARCH_RESULT_LIMIT = 10
 
+# The fit card is a social post, so it has to fit X's 280-character limit
+# (spaces included). If the model goes over, it is asked to shorten the caption
+# up to FIT_CARD_RETRIES times, and after that the caption is trimmed.
+FIT_CARD_MAX_CHARS = 280
+FIT_CARD_RETRIES = 2
+
 
 # ─── Model ───────────────────────────────────────────────────────────────────
 
