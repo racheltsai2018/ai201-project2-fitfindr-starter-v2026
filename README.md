@@ -169,6 +169,10 @@ Finally tracked down the ultimate pair of vintage Levi's 501 jeans on Depop for 
 - *What came back:* Since it was not specified when entering the prompt, Claude passed arguments directly between function calls instead of storing them in the session. 
 - *What I changed:* Instead of passing the arguments directly between function calls, the values are saved to the session and retrieved from session. 
 
+**Unit 4**
+- *What I asked for:* I asked Claude to help me with editing run_eval.py so the program are tested properly to check whether the criteria are MET.
+- *What I changed:* In order to check criteria 4 properly, the character count is added to all tries.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -493,11 +497,8 @@ Results:
 ModelUnavailable: The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com.
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
-
+**On the MCP move:** 
+The 'search_listing' method is registered as an MCP tool in 'mcp_server.py' and called with 'call_tool("search_listings", {...})' from 'mcp_client.py'. The results generated from both direct calls and through MCP were similar.
 
 ---
 
@@ -508,9 +509,9 @@ full. -->
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** The 'create_fit_card' prompt is edited and a safety net method is added.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** The method originally created captions that are over 280 characters. After the fix, it ensures that the caption is under 280 characters.
 
 ### Run Log — After
 
@@ -538,8 +539,7 @@ The changes made in Milestone 5 helped fix the issue regarding the caption gener
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
-
-
+Currently all criterion has been met. However, there are still a few things that are broken that are not mentioned in the criterion. First, when the model becomes unreachable or unavailable, the program will end immediately by sending the message "ModelUnavailable: Couldn't reach the model: simulated: model unreachable". This problem can be solved by adding fallback methods for 'suggest_outfit' and 'create_fit_card' to avoid this issue. Another issue is in the regex method for parsing. Currently, the regex assums that the first number becomes the price ceiling. 
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
