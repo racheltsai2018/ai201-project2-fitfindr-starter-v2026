@@ -558,18 +558,18 @@ Currently all criterion has been met. However, there are still a few things that
 
      SUBMISSION CHECKLIST — unit 4
 
-       [ ] mcp_server.py exists with one tool registered
+       [X] mcp_server.py exists with one tool registered
            (or a written record of exactly where the rewire broke)
-       [ ] Run Log — Before, five criteria, five tries each
-       [ ] Real output pasted underneath, naming file and function
-       [ ] A verdict on every criterion
-       [ ] A diagnosis for every miss, naming a place AND a mechanism
-       [ ] Loop Trace, with the MCP call visible in it
-       [ ] All three failure modes triggered and handled
-       [ ] One improvement, with Run Log — After in the same format
-       [ ] What's Still Broken
-       [ ] At least four new commits
-       [ ] The SAME repository URL as last unit
+       [X] Run Log — Before, five criteria, five tries each
+       [X] Real output pasted underneath, naming file and function
+       [X] A verdict on every criterion
+       [X] A diagnosis for every miss, naming a place AND a mechanism
+       [X] Loop Trace, with the MCP call visible in it
+       [X] All three failure modes triggered and handled
+       [X] One improvement, with Run Log — After in the same format
+       [X] What's Still Broken
+       [X] At least four new commits
+       [X] The SAME repository URL as last unit
 
      Do not delete and recreate this repository. Your commit history is what
      shows your criteria existed before your results did.
