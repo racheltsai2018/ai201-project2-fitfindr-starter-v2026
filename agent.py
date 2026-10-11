@@ -157,9 +157,10 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             # (general styling advice), so both wardrobe paths continue here.
             item = session["selected_item"]
             print(f"[suggest_outfit input] id={item.get('id')} | {item.get('title')} | {item.get('description')}")
-            session["outfit_suggestion"] = suggest_outfit(
-                session["selected_item"], session["wardrobe"]
-            )
+            session["outfit_suggestion"] = call_tool("suggest_outfit", {
+                "new_item": session["selected_item"],
+                "wardrobe": session["wardrobe"],
+            })
             trace.step("suggest_outfit", inputs={"item": session["selected_item"].get("title"), "wardrobe_items": len(session["wardrobe"].get("items", []))}, returned=session["outfit_suggestion"])
             next_step = "fit_card"
 

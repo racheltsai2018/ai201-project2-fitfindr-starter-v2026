@@ -541,6 +541,9 @@ The changes made in Milestone 5 helped fix the issue regarding the caption gener
      left is not. -->
 Currently all criterion has been met. However, there are still a few things that are broken that are not mentioned in the criterion. First, when the model becomes unreachable or unavailable, the program will end immediately by sending the message "ModelUnavailable: Couldn't reach the model: simulated: model unreachable". This problem can be solved by adding fallback methods for 'suggest_outfit' and 'create_fit_card' to avoid this issue. Another issue is in the regex method for parsing. Currently, the regex assums that the first number becomes the price ceiling. 
 
+## Stretch features
+**What changes were made:** A second tool is moved onto MCP. The tool moved is 'suggest_outfit', and in 'agent.py' instead of calling the function directly, it now 'call_tool("suggest_outfit", { "new_item": session["selected_item"],"wardrobe": session["wardrobe"],})'.
+
 <!-- ═════════════════════════════════════════════════════════════════════
 
      SUBMISSION CHECKLIST — unit 3

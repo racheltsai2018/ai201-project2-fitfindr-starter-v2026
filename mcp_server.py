@@ -60,6 +60,7 @@ works with a direct call, and **a documented failure earns the point in full.**
 from mcp.server.fastmcp import FastMCP
 
 from tools import search_listings as _search_listings_impl  # noqa: F401 — you'll use this below
+from tools import suggest_outfit as _suggest_outfit_impl
 
 # log_level="WARNING" keeps the server from printing an INFO line for every
 # request. Without it your terminal fills with "Processing request of type
@@ -97,6 +98,14 @@ def search_listings(
 # `max_price: float | None = None` becomes an optional number. Getting these
 # wrong is the most common reason a call is rejected.
 
+
+@mcp.tool()
+def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
+    """
+    Given a thrifted item and the user's wardrobe, suggest one or two outfits.
+    Returns a non-e,pty string of outfit ideas. If the wardrobe is empty, it returns general styling advice instead of naming the user's own pieces.
+    """
+    return _suggest_outfit_impl(new_item, wardrobe)
 
 if __name__ == "__main__":
     mcp.run()
