@@ -42,6 +42,12 @@
 The FitFindr is an AI agent that takes a user's request and searches the available clothing listings for matching clothings. If clothing matching the user's description is found, the agents will then suggest outfits that goes well with the clothing. In the last step, the agent will geneate a fit card for the user, which can be posted on social media. 
 
 
+## The Shape
+The shape selected is C, which is extend one capability. A fourth tool will be added to the FitFindr. The fourth tool will give the user an estimate of how much the items they are looking for usually are. For the listing that matched the search, it will be labeled if the item is a good deal, fair, or overpriced.
+
+## Out of scope
+I am not adding a tool which compares the prices for the item on different platforms the item is sold. I am not adding a User Interface which shows the users what the items in their wardrobe looks like or what the items they are searching look like.
+
 ---
 
 ## Tool Inventory
