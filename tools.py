@@ -152,6 +152,78 @@ def _score_listing(query_words: set[str], listing: dict) -> int:
     return score
 
 
+# ── Tool 4: estimate_price ────────────────────────────────────────────────────
+
+# A listing within ±DEAL_MARGIN of the typical price is "fair".
+DEAL_MARGIN = 0.20
+# Fewer comparable listings than this and we don't claim a typical price.
+MIN_COMPARABLES = 3
+
+
+def estimate_price(description: str, listings: list[dict]) -> dict:
+    """
+    Estimate what an item like `description` usually costs, then rate each of
+    `listings` as a good deal, fair, or overpriced against that estimate.
+
+    The typical price is the median price of every listing in the dataset that
+    matches the description — ignoring the user's size and budget filters, so
+    the estimate reflects the whole market, not just what fit their search.
+
+    Args:
+        description: keywords describing the item (e.g. "vintage graphic tee").
+        listings:    the listings to rate — usually what search_listings returned.
+
+    Returns:
+        {"typical_price": float | None, "sample_size": int,
+         "rated": [{"id", "title", "price", "deal"}, ...]}
+        deal is "good deal" (≥20% below typical), "fair" (within ±20%),
+        or "overpriced" (>20% above).
+        When fewer than MIN_COMPARABLES listings match, typical_price is None
+        and every deal is "unknown" — no guessing.
+    """
+    query_words = set(_tokenize(description))
+    prices = sorted(
+        l["price"] for l in load_listings()
+        if query_words and _score_listing(query_words, l) > 0
+    )
+
+    typical = _median(prices) if len(prices) >= MIN_COMPARABLES else None
+
+    rated = []
+    for l in listings:
+        rated.append({
+            "id": l.get("id"),
+            "title": l.get("title"),
+            "price": l.get("price"),
+            "deal": _deal_label(l.get("price"), typical),
+        })
+
+    return {
+        "typical_price": round(typical, 2) if typical is not None else None,
+        "sample_size": len(prices),
+        "rated": rated,
+    }
+
+
+def _median(values: list[float]) -> float:
+    """Median of an already-sorted, non-empty list."""
+    mid = len(values) // 2
+    if len(values) % 2:
+        return values[mid]
+    return (values[mid - 1] + values[mid]) / 2
+
+
+def _deal_label(price: float | None, typical: float | None) -> str:
+    """Compare one price to the typical price."""
+    if price is None or not typical:
+        return "unknown"
+    if price <= typical * (1 - DEAL_MARGIN):
+        return "good deal"
+    if price > typical * (1 + DEAL_MARGIN):
+        return "overpriced"
+    return "fair"
+
+
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
 
 def suggest_outfit(new_item: dict, wardrobe: dict) -> str:

@@ -119,6 +119,14 @@ def _ask_one(query, wardrobe, use_trace):
     else:
         item = session["selected_item"] or {}
         print(f"  Found:    {item.get('title')} — ${item.get('price')} on {item.get('platform')}")
+        from agent import _price_line
+        print(f"  Price:    {_price_line(session)}")
+        est = session.get("price_estimate") or {}
+        others = [r for r in est.get("rated", []) if r["id"] != item.get("id")]
+        if others:
+            print("  Other results:")
+            for r in others:
+                print(f"            {r['title']} — ${r['price']} ({r['deal']})")
         print()
         print(f"  Outfit:   {session['outfit_suggestion']}")
         print()

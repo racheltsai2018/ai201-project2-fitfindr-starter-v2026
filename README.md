@@ -73,6 +73,13 @@ I am not adding a tool which compares the prices for the item on different platf
 - **Returns:** A two to four sentence talking about the item, and the suggested outfits in social media post format.
 - **When it has nothing:** If the suggested outfit is empty or whitespace, a descriptive message will be returned. 
 
+### `estimate_price`
+
+- **What it does:** Estimates what an item like the one searched usually costs (median price of every listing in the dataset matching the description, ignoring size and budget filters), then rates each search result against it.
+- **Inputs:** 'description' (str), 'listings' (list of listing dicts from search_listings)
+- **Returns:** A dict: 'typical_price' (float), 'sample_size' (int, how many listings the estimate is based on), and 'rated' (list of {id, title, price, deal}). 'deal' is "good deal" (20%+ below typical), "fair" (within ±20%), or "overpriced" (more than 20% above).
+- **When it has nothing:** If fewer than 3 comparable listings exist, 'typical_price' is None and every 'deal' is "unknown" — it does not guess.
+
 ---
 
 ## Planning Loop
@@ -88,7 +95,7 @@ I am not adding a tool which compares the prices for the item on different platf
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**  If search_listings returns an empty list, put a message in the session and stop. Otherwise take the first result and go to suggest_outfit.
+**Branch rule:**  If search_listings returns an empty list, put a message in the session and stop. Otherwise run estimate_price on the results, take the first result, and go to suggest_outfit.
 
 If the wardrobe which is an input for 'suggest_outfit' is empty, return general styling advice, and pass the result to 'create_fit_card'. Otherwise, take recommended outfit result and go to 'create_fit_card'
 
@@ -96,7 +103,7 @@ If the wardrobe which is an input for 'suggest_outfit' is empty, return general 
 
 **How the query is parsed:** The query is sent to the model to parse the parameters including 'description', 'size', and 'max_price'. The result will then be saved into session["parsed"].
 
-**What moves through the session:** First, the query is parsed then saved into session["parsed"]. Second, 'search_listing' is called with what is parsed as input, and the generated result from 'search_listing' will be saved into session["search_results"]. If the result from 'search_listing' is "no results", input a message in session["error"]. Third, an item should be selected from the 'search_listing' and saved to session["selected_item"]. Fourth, 'suggest_outfit' will be called and the results will be saved in session["outfit_suggestion"]. Lastly, 'create_fit_card' is called and the result is saved into session["fit_card"]. 
+**What moves through the session:** First, the query is parsed then saved into session["parsed"]. Second, 'search_listing' is called with what is parsed as input, and the generated result from 'search_listing' will be saved into session["search_results"]. If the result from 'search_listing' is "no results", input a message in session["error"]. Otherwise, 'estimate_price' is called with the description and the results, and the typical price and deal ratings are saved into session["price_estimate"]. Third, an item should be selected from the 'search_listing' and saved to session["selected_item"]. Fourth, 'suggest_outfit' will be called and the results will be saved in session["outfit_suggestion"]. Lastly, 'create_fit_card' is called and the result is saved into session["fit_card"]. 
 
 ---
 

@@ -18,7 +18,7 @@ import re
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+from tools import search_listings, suggest_outfit, create_fit_card, estimate_price
 from generate import generate, ModelUnavailable, QuotaGuard
 from mcp_client import call_tool
 
@@ -44,6 +44,7 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "parsed": {},                # description / size / max_price you pulled out of it
         "parsed_by": None,           # "model", or "regex" if the model couldn't be used
         "search_results": [],        # everything search_listings returned
+        "price_estimate": None,      # what estimate_price returned (typical price + deal ratings)
         "selected_item": None,       # the one you chose — goes into suggest_outfit
         "wardrobe": wardrobe,        # the user's wardrobe
         "outfit_suggestion": None,   # what suggest_outfit returned
@@ -143,7 +144,17 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                 trace.step("search_listings (with MCP)", inputs=parsed, returned=session["search_results"], note="branch: empty, stopping")
                 next_step = "done"
             else:
-                next_step = "select"
+                next_step = "price_check"
+
+        #estimate typical price and rate each result
+        elif next_step == "price_check":
+            session["price_estimate"] = estimate_price(
+                session["parsed"]["description"], session["search_results"]
+            )
+            est = session["price_estimate"]
+            print(f"[estimate_price] typical ${est['typical_price']} from {est['sample_size']} listing(s)")
+            trace.step("estimate_price", inputs={"description": session["parsed"]["description"], "results": len(session["search_results"])}, returned=est)
+            next_step = "select"
 
         #choose an item
         elif next_step == "select":
@@ -304,6 +315,18 @@ def _no_results_message(parsed: dict) -> str:
     )
 
 
+def _price_line(session: dict) -> str:
+    """One line: the selected item's deal label against the typical price."""
+    est = session.get("price_estimate")
+    item = session.get("selected_item") or {}
+    if not est:
+        return "no price estimate"
+    deal = next((r["deal"] for r in est["rated"] if r["id"] == item.get("id")), "unknown")
+    if est["typical_price"] is None:
+        return f"not enough similar listings to estimate ({est['sample_size']} found)"
+    return f"{deal} — these usually go for ~${est['typical_price']:.0f} ({est['sample_size']} listings)"
+
+
 # ── running it directly ───────────────────────────────────────────────────────
 
 def _show(session: dict) -> None:
@@ -314,6 +337,7 @@ def _show(session: dict) -> None:
 
     item = session["selected_item"] or {}
     print(f"  found:    {item.get('title')} — ${item.get('price')} on {item.get('platform')}")
+    print(f"  price:    {_price_line(session)}")
     print(f"  outfit:   {session['outfit_suggestion']}")
     print(f"  fit card: {session['fit_card']}")
 
