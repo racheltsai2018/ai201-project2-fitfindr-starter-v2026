@@ -557,6 +557,36 @@ Currently all criterion has been met. However, there are still a few things that
 ## Stretch features
 **What changes were made:** A second tool is moved onto MCP. The tool moved is 'suggest_outfit', and in 'agent.py' instead of calling the function directly, it now 'call_tool("suggest_outfit", { "new_item": session["selected_item"],"wardrobe": session["wardrobe"],})'.
 
+## Instrumentation
+
+Every request sent to `serve.py` writes one JSON line, both to the terminal and to
+`results/serve_log.jsonl`.
+
+The last time is one failed run with a missing query.
+
+```json
+{"time": "2026-11-12T01:14:23", "route": "/ask", "request_id": 3, "status": 200, "query": "vintage graphic tee under $30", "parsed_by": "model", "results": 10, "selected": "Y2K Baby Tee — Butterfly Print", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 6.927, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 970, "output_tokens": 211, "total_tokens": 1181, "cache": false}
+{"time": "2026-11-12T01:14:30", "route": "/ask", "request_id": 4, "status": 200, "query": "black jeans size M", "parsed_by": "model", "results": 2, "selected": "Mesh Long-Sleeve Top — Black", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 6.884, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 945, "output_tokens": 187, "total_tokens": 1132, "cache": false}
+{"time": "2026-11-12T01:14:37", "route": "/ask", "request_id": 5, "status": 200, "query": "y2k top under $25", "parsed_by": "model", "results": 5, "selected": "Mesh Long-Sleeve Top — Black", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 6.89, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 971, "output_tokens": 214, "total_tokens": 1185, "cache": false}
+{"time": "2026-11-12T01:14:45", "route": "/ask", "request_id": 6, "status": 200, "query": "cozy sweater", "parsed_by": "model", "results": 2, "selected": "Knit Cardigan — Chunky Brown", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 7.983, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 933, "output_tokens": 189, "total_tokens": 1122, "cache": false}
+{"time": "2026-11-12T01:14:52", "route": "/ask", "request_id": 7, "status": 500, "query": "denim jacket under $50", "error": "MCPError: Couldn't call 'suggest_outfit' over MCP: unhandled errors in a TaskGroup (1 sub-exception)\nCheck that mcp_server.py runs on its own first:\n    python mcp_server.py\nIf it exits immediately with an error, fix that before coming back here.", "waited_s": 0.001, "duration_s": 6.966, "model": "gemini-3.5-flash-lite", "model_calls": 2, "prompt_tokens": 186, "output_tokens": 30, "total_tokens": 216, "cache": false}
+{"time": "2026-11-12T01:15:08", "route": "/ask", "request_id": 8, "status": 200, "query": "vintage graphic tee under $30", "parsed_by": "model", "results": 10, "selected": "Y2K Baby Tee — Butterfly Print", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 16.04, "model": "gemini-3.5-flash-lite", "model_calls": 4, "prompt_tokens": 959, "output_tokens": 198, "total_tokens": 1157, "cache": false}
+{"time": "2026-11-12T01:16:09", "route": "/ask", "request_id": 9, "status": 200, "query": "black jeans size M", "parsed_by": "model", "results": 2, "selected": "Mesh Long-Sleeve Top — Black", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 61.18, "model": "gemini-3.5-flash-lite", "model_calls": 4, "prompt_tokens": 947, "output_tokens": 191, "total_tokens": 1138, "cache": false}
+{"time": "2026-11-12T01:16:16", "route": "/ask", "request_id": 10, "status": 200, "query": "y2k top under $25", "parsed_by": "model", "results": 5, "selected": "Mesh Long-Sleeve Top — Black", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 6.838, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 975, "output_tokens": 218, "total_tokens": 1193, "cache": false}
+{"time": "2026-11-12T01:16:23", "route": "/ask", "request_id": 11, "status": 200, "query": "cozy sweater", "parsed_by": "model", "results": 2, "selected": "Knit Cardigan — Chunky Brown", "got_fit_card": true, "error": null, "waited_s": 0.002, "duration_s": 7.2, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 928, "output_tokens": 180, "total_tokens": 1108, "cache": false}
+{"time": "2026-11-12T01:16:30", "route": "/ask", "request_id": 12, "status": 200, "query": "denim jacket under $50", "parsed_by": "model", "results": 7, "selected": "Denim Jacket — Light Wash, Cropped", "got_fit_card": true, "error": null, "waited_s": 0.001, "duration_s": 7.161, "model": "gemini-3.5-flash-lite", "model_calls": 3, "prompt_tokens": 954, "output_tokens": 212, "total_tokens": 1166, "cache": false}
+{"time": "2026-11-12T01:14:07", "route": "/ask", "request_id": 1, "status": 400, "query": null, "error": "missing query", "duration_s": 0.0}
+```
+
+## What It Costs
+
+One run uses about 1060 gemini tokens. Among the 1060 tokens, about 877 are for prompt and 183 for output. The average time it takes is about 13.41 seconds. 
+
+**How I measured it:** `python measure_cost.py` sends 10 queries. For each run, it takes the change in `generate.py`'s counters, which add up `usage_metadata.prompt_token_count` and `candidates_token_count`
+from each Gemini response. It then adds the usage that the MCP subprocess
+reported for `suggest_outfit`.
+
+
 <!-- ═════════════════════════════════════════════════════════════════════
 
      SUBMISSION CHECKLIST — unit 3

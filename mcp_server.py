@@ -57,6 +57,9 @@ works with a direct call, and **a documented failure earns the point in full.**
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import json
+import os
+
 from mcp.server.fastmcp import FastMCP
 
 from tools import search_listings as _search_listings_impl  # noqa: F401 — you'll use this below
@@ -105,7 +108,30 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Given a thrifted item and the user's wardrobe, suggest one or two outfits.
     Returns a non-e,pty string of outfit ideas. If the wardrobe is empty, it returns general styling advice instead of naming the user's own pieces.
     """
-    return _suggest_outfit_impl(new_item, wardrobe)
+    try:
+        return _suggest_outfit_impl(new_item, wardrobe)
+    finally:
+        _report_usage("suggest_outfit")
+
+
+# ── cost reporting ────────────────────────────────────────────────────────────
+# This process is started fresh for every MCP call, so its model calls never
+# reach serve.py's token counter. Write what this call spent to a side file;
+# serve.py reads it after the run and adds it to that request's log line.
+MCP_USAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "results", "mcp_usage.jsonl")
+
+
+def _report_usage(tool: str) -> None:
+    try:
+        import generate
+        entry = {"tool": tool, "model_calls": generate.call_count(),
+                 **{f"{k}_tokens": v for k, v in generate.token_counts().items()}}
+        with open(MCP_USAGE_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:  # noqa: BLE001 — reporting must never break the tool
+        pass
+
 
 if __name__ == "__main__":
     mcp.run()

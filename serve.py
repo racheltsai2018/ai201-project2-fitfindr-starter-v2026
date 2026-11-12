@@ -46,6 +46,7 @@ import config  # noqa: F401
 
 from flask import Flask, jsonify, request
 
+import generate
 from agent import run_agent
 from utils.data_loader import get_example_wardrobe
 
@@ -111,6 +112,42 @@ def log_event(**fields):
         f.write(line + "\n")
 
 
+# ── cost of one run ───────────────────────────────────────────────────────────
+# generate.py keeps running totals for this process. Snapshot before a run,
+# subtract after, and add what the MCP subprocess reported (see mcp_server.py)
+# — otherwise suggest_outfit's model call would silently go uncounted.
+MCP_USAGE_PATH = os.path.join(os.path.dirname(LOG_PATH), "mcp_usage.jsonl")
+
+
+def _usage_snapshot() -> dict:
+    t = generate.token_counts()
+    return {"calls": generate.call_count(), "prompt": t["prompt"], "output": t["output"]}
+
+
+def _drain_mcp_usage() -> list[dict]:
+    try:
+        with open(MCP_USAGE_PATH, encoding="utf-8") as f:
+            entries = [json.loads(line) for line in f if line.strip()]
+        os.remove(MCP_USAGE_PATH)
+        return entries
+    except (OSError, ValueError):
+        return []
+
+
+def _usage_since(before: dict) -> dict:
+    now = _usage_snapshot()
+    calls = now["calls"] - before["calls"]
+    prompt = now["prompt"] - before["prompt"]
+    output = now["output"] - before["output"]
+    for e in _drain_mcp_usage():
+        calls += e.get("model_calls", 0)
+        prompt += e.get("prompt_tokens", 0)
+        output += e.get("output_tokens", 0)
+    return {"model_calls": calls, "prompt_tokens": prompt,
+            "output_tokens": output, "total_tokens": prompt + output,
+            "cache": config.CACHE_ENABLED}
+
+
 @app.get("/health")
 def health():
     """Is the server awake? A host pings something like this to find out."""
@@ -169,10 +206,13 @@ def ask():
     session = None
     with _one_at_a_time:
         waited_s = round(time.perf_counter() - started, 3)
+        before = _usage_snapshot()
+        _drain_mcp_usage()  # drop anything left over from an earlier crash
         try:
             session = run_agent(query, wardrobe)
         except Exception as exc:  # noqa: BLE001 — a 500 with a sentence beats a hang
             failure = f"{type(exc).__name__}: {exc}"
+        cost = _usage_since(before)
 
     duration_s = round(time.perf_counter() - started, 3)
 
@@ -180,7 +220,8 @@ def ask():
     # be waiting on.
     if failure is not None:
         log_event(route="/ask", request_id=request_id, status=500, query=query,
-                  error=failure, waited_s=waited_s, duration_s=duration_s)
+                  error=failure, waited_s=waited_s, duration_s=duration_s,
+                  model=config.MODEL, **cost)
         return jsonify({"error": failure}), 500
 
     selected = session.get("selected_item") or {}
@@ -196,6 +237,8 @@ def ask():
         error=session.get("error"),
         waited_s=waited_s,
         duration_s=duration_s,
+        model=config.MODEL,
+        **cost,
     )
     return jsonify(session)
 

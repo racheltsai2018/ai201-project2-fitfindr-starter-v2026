@@ -28,6 +28,7 @@ right trade for one unit.
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -75,6 +76,7 @@ async def _call(name: str, arguments: dict):
     params = StdioServerParameters(
         command=sys.executable,
         args=[str(SERVER)],
+        env=dict(os.environ),  # pass AI201_CACHE etc. through to the server process
     )
 
     async with stdio_client(params) as (read, write):
@@ -149,7 +151,7 @@ if __name__ == "__main__":
         from mcp import ClientSession, StdioServerParameters
         from mcp.client.stdio import stdio_client
 
-        params = StdioServerParameters(command=sys.executable, args=[str(SERVER)])
+        params = StdioServerParameters(command=sys.executable, args=[str(SERVER)], env=dict(os.environ))
         async with stdio_client(params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
