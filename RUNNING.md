@@ -155,6 +155,65 @@ the point of the session.
 
 ---
 
+## Deployment (Path B — local with logs)
+
+FitFindr runs on my own machine. It calls the hosted Gemini API and doesn't
+load a model locally.
+
+### Start it
+
+From a clean checkout (Windows PowerShell):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env         # then paste your GEMINI_API_KEY into .env
+python serve.py
+```
+
+**The single command that starts the system is `python serve.py`.** It listens
+on `http://localhost:5000` (or `$PORT` if set).
+
+Check that it works from a second terminal:
+
+```powershell
+Invoke-RestMethod http://localhost:5000/health
+Invoke-RestMethod -Method Post -Uri http://localhost:5000/ask -ContentType 'application/json' -Body '{"query": "vintage graphic tee under $30"}'
+```
+
+### Environment
+
+| Thing | Value |
+|---|---|
+| Python | 3.13.13 (3.11–3.13 supported; **not** 3.14) |
+| OS tested on | Windows 11 |
+| Dependencies | Pinned with upper and lower bounds in `requirements.txt` |
+| Versions actually installed | `Flask==3.1.3`, `google-genai==1.75.0`, `gunicorn==23.0.0`, `mcp==1.30.0`, `python-dotenv==1.1.1` |
+| Model files | **None.** The model is Gemini, called over the API. Nothing is downloaded or loaded locally |
+| Secrets | `GEMINI_API_KEY` in `.env` (not committed) |
+
+### Run record
+
+Every request writes one JSON line to the terminal and to
+`results/serve_log.jsonl`. The lines below come from two separate server
+sessions on 2026-11-11. `request_id` restarts at 1 when the server restarts,
+so the third line is the start of the second session.
+
+```json
+{"time": "2026-11-11T16:16:03", "route": "/ask", "request_id": 1, "status": 200, "query": "vintage graphic tee under $30", "parsed_by": "model", "results": 10, "selected": "Y2K Baby Tee — Butterfly Print", "got_fit_card": true, "error": null, "waited_s": 0.002, "duration_s": 6.452}
+{"time": "2026-11-11T16:18:13", "route": "/ask", "request_id": 2, "status": 200, "query": "vintage graphic tee under $30", "parsed_by": "model", "results": 10, "selected": "Y2K Baby Tee — Butterfly Print", "got_fit_card": true, "error": null, "waited_s": 0.002, "duration_s": 3.942}
+{"time": "2026-11-11T16:20:02", "route": "/ask", "request_id": 1, "status": 200, "query": "designer ballgown size XXS under $5", "parsed_by": "model", "results": 0, "selected": null, "got_fit_card": false, "error": "Nothing matched \"designer ballgown\" in size XXS under $5. You could raise your budget above $5, or drop the size filter (size XXS), or try broader or different words than \"designer ballgown\".", "waited_s": 0.002, "duration_s": 2.176}
+```
+
+What it shows:
+- **Session 1:** two successful requests (about 6.5 s and 3.9 s), each one
+  finding 10 listings and returning a fit card.
+- **Session 2:** a query that matches nothing. The agent stops cleanly with a
+  helpful message instead of crashing.
+
+---
+
 ## Where everything lives
 
 | File | What it does |

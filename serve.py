@@ -33,9 +33,12 @@ then deploy it. A structured log you were handed teaches you nothing about
 what belongs in one — and the timing field is the one everybody skips.
 """
 
+import json
 import os
 import sys
 import threading
+import time
+from datetime import datetime
 
 # config first, and before anything that talks to the model: it loads your .env
 # and fixes the Windows console encoding for every module that imports it.
@@ -91,9 +94,27 @@ app = Flask(__name__)
 _one_at_a_time = threading.Lock()
 
 
+# ── structured log ────────────────────────────────────────────────────────────
+# One JSON line per request, printed and appended to results/serve_log.jsonl.
+# That file is the committed run record for Path B.
+LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "results", "serve_log.jsonl")
+_request_count = 0
+
+
+def log_event(**fields):
+    entry = {"time": datetime.now().isoformat(timespec="seconds"), **fields}
+    line = json.dumps(entry, ensure_ascii=False)
+    print(line, flush=True)
+    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    with open(LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
 @app.get("/health")
 def health():
     """Is the server awake? A host pings something like this to find out."""
+    log_event(route="/health", status=200)
     return jsonify({"status": "ok"})
 
 
@@ -107,10 +128,18 @@ def ask():
                                                 example wardrobe the CLI uses.
     Out:  the session dict from run_agent(), as JSON.
     """
+    global _request_count
+    _request_count += 1
+    request_id = _request_count
+    started = time.perf_counter()
+
     payload = request.get_json(silent=True) or {}
     query = (payload.get("query") or "").strip()
     if not query:
         # 400 rather than a stack trace: the caller can act on this one.
+        log_event(route="/ask", request_id=request_id, status=400,
+                  query=None, error="missing query",
+                  duration_s=round(time.perf_counter() - started, 3))
         return jsonify({"error": "Send JSON with a 'query' field, e.g. "
                                  '{"query": "vintage graphic tee under $30"}'}), 400
 
@@ -139,16 +168,35 @@ def ask():
     failure = None
     session = None
     with _one_at_a_time:
+        waited_s = round(time.perf_counter() - started, 3)
         try:
             session = run_agent(query, wardrobe)
         except Exception as exc:  # noqa: BLE001 — a 500 with a sentence beats a hang
             failure = f"{type(exc).__name__}: {exc}"
 
+    duration_s = round(time.perf_counter() - started, 3)
+
     # Outside the lock: building a response is not work the next caller should
     # be waiting on.
     if failure is not None:
+        log_event(route="/ask", request_id=request_id, status=500, query=query,
+                  error=failure, waited_s=waited_s, duration_s=duration_s)
         return jsonify({"error": failure}), 500
 
+    selected = session.get("selected_item") or {}
+    log_event(
+        route="/ask",
+        request_id=request_id,
+        status=200,
+        query=query,
+        parsed_by=session.get("parsed_by"),
+        results=len(session.get("search_results") or []),
+        selected=selected.get("title") if isinstance(selected, dict) else None,
+        got_fit_card=bool(session.get("fit_card")),
+        error=session.get("error"),
+        waited_s=waited_s,
+        duration_s=duration_s,
+    )
     return jsonify(session)
 
 
