@@ -85,6 +85,50 @@ When the model cannot be reached, the system will fall back to regex to retrieve
 **Why this target:**
 This criteria ensures that if the model does not work, the fall back method will be used 100% of the time. To ensure the reliability of the agent, the fallback system will still retrieve the 'description', 'size', and 'max_price' when the model is not working 100% of the time. If it does not work even 1 out of 5 tries, it will show on the UI making it less reliable. 
 
+---
+
+## 6. Every listing gets a label
+
+Given all the results from search_listings, every listing will be labeled in 5 out of 5 tries. 
+
+**Why this target:**
+Estimate_price does not call the model so all listing should be labeled from one of the available labels (good deal, fair, overpriced, and unknown). If it misses even once, there is a bug, so the criteria meet 5/5 to ensure that it is working.
+
+---
+
+## 7. The label matches the 20% rule
+
+For all listings, each listing will be labeled correctly in 5 out of 5 tries.
+
+**Why this target:**
+There is a rule where price <= 80% of the normal price will be labeled good deal. Price > 120% of the normal price. The listings with price between 80% to 120% of the normal price will be labeled fair. Since this is a fixed rule, the label should be labeled correctly in all tries.
+
+---
+
+## 8. Too few matching listings
+
+Given an input that return less than 3 listings when searched, all listing will be labeled "unknown", and it will not raise an error in 5 out of 5 ties.
+
+**Why this target:**
+1 - 2 listing is unable to represent the real market price. It would label the listings with false confidence. To prevent this, the minimum number of listings is set to 3. All searches that return less than 3 listing will be labeled unknown.
+
+---
+
+## 9. Typical price comparison
+
+For the different searches, every listing used to calcualte typical pice is in the same category as the item being searched in 5 of 5 tries. 
+
+**Why this target:**
+The labels ("good deal", "fair", "overpriced") only become meaningfull if the item is compared with similar item. An example would be a 'vintage graphic tee under $30' should only be compared with other tee shirts. 
+
+---
+
+## 10. Failing price estimation does not break the tool
+
+When the price estimation returns None, the program is still able to finish suggest_outfit and create_fit_card in 5 out of 5 tries.
+
+**Why this target:**
+This criteria is to ensure when tool 4 is unable to generate a typical_price or when an error is thrown, it will not crash the whole program. The program is still able to continue on and finish running the rest of the methods.
 
 ---
 
