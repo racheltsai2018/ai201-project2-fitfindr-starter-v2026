@@ -551,11 +551,26 @@ Currently all criterion has been met. However, there are still a few things that
 
 ## Capstone
 
+### What This Extends
+This is the FitFindr system, and a fourth tool is added. The fourth tool gives the user an estimate of how much they are looking for generally are.
+
 ### The Shape
 The shape selected is C, which is extend one capability. A fourth tool will be added to the FitFindr. The fourth tool will give the user an estimate of how much the items they are looking for usually are. For the listing that matched the search, it will be labeled if the item is a good deal, fair, or overpriced.
 
 ### Out of scope
 I am not adding a tool which compares the prices for the item on different platforms the item is sold. I am not adding a User Interface which shows the users what the items in their wardrobe looks like or what the items they are searching look like.
+
+### Running It
+The path that is selected is running it local with logs. Every request gets logged to serve_log.jsonl in results folder. 
+In one terminal run the:
+ ```powershell
+python serve.py
+```
+In another terminal, you can run this command from a second terminal:
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:5000/ask -ContentType 'application/json' -Body '{"query": "vintage graphic tee under $30"}'
+```
+For more details on how to run it, check out [RUNNING.md](RUNNING.md). 
 
 ### Instrumentation
 
@@ -581,6 +596,18 @@ The last time is one failed run with a missing query.
 ### What It Costs
 
 One run uses about 1060 gemini tokens. Among the 1060 tokens, about 877 are for prompt and 183 for output. The average time it takes is about 13.41 seconds. 
+
+**Cost for a hundred people a day:**
+Prompt token: 877 token/run x 100 run/day = 87,700 tokens/ day
+Output token: 183 token/run x 100 run/day = 18,300 tokens/day
+Total token: 1,060 tokens/run x 100 runs/day = 106,000 tokens/day
+
+Prompt cost: 87,700 tokens = $0.0263 / day
+Output cost: 18,300 tokens = $0.0458 / day
+Daily total: $0.0721 / day
+Monthly: $2.163 / month
+
+The model used is Gemini 3.5 Flash-Lite.
 
 **How I measured it:** `python measure_cost.py` sends 10 queries. For each run, it takes the change in `generate.py`'s counters, which add up `usage_metadata.prompt_token_count` and `candidates_token_count`
 from each Gemini response. It then adds the usage that the MCP subprocess
@@ -1041,7 +1068,7 @@ Trace:
 | 9. comparables are the same category | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 | 10. price estimation failure doesn't break the run | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+## The Improvement
 
 The changes made helped fix the issue with criterion 9, where the listings used to estimate price are from different categories. A new function is added to only return listing that match the description and are from the same category. With the new function, all listing are from the same category and it was able to pass with 5/5 for all 5 tries.
 
