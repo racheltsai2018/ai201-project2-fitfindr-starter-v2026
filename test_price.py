@@ -94,6 +94,15 @@ def test_keeps_order_and_fields():
     assert [r["id"] for r in rated] == ["t5", "t1"]  # best match stays first
     assert set(rated[0]) == {"id", "title", "price", "deal"}
 
+def test_comparables_only_from_same_category():
+    # A "graphic" jacket shares a keyword but is outerwear, so it must not
+    # drag the tee's typical price up.
+    jacket = dict(_listing("j2", "Graphic Jacket", 500.0), category="outerwear")
+    use_fake_data(FAKE_TEES + [jacket])
+    result = estimate_price("graphic", [FAKE_TEES[0]])
+    assert result["typical_price"] == 20.0
+    assert result["sample_size"] == 5
+
 def test_too_few_comparables_gives_unknown():
     use_fake_data(FAKE_TEES[:2])  # only 2 tees, minimum is 3
     result = estimate_price("graphic tee", [FAKE_TEES[0]])

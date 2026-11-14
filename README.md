@@ -586,7 +586,7 @@ One run uses about 1060 gemini tokens. Among the 1060 tokens, about 877 are for 
 from each Gemini response. It then adds the usage that the MCP subprocess
 reported for `suggest_outfit`.
 
-### Run Log (Unit 9 Milestone 5)
+### Run Log (Unit 9 Milestone 5) - before
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
 | 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
@@ -599,6 +599,9 @@ reported for `suggest_outfit`.
 | 8. too few comparables -> all unknown | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 | 9. comparables are the same category | 5/5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
 | 10. price estimation failure doesn't break the run | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+**Diagnosis**
+Criterion 9 missed 5 out of 5 runs. This is not passing because currently estimate_price includes all listing that is returned. An example is if the input is 'vintage graphic tee under $30', all the listing that includes the word "vintage" will be used to calculate the average price. 
 
 **Criterion 6 - every listing gets a label**
 From tool.py, estimate_price function.
@@ -1022,6 +1025,26 @@ Trace:
       in:  dict with keys: item, outfit
       out: Scored this cropped light wash denim jacket on Poshmark for $42 and I’m obsessed with the structured shoulders…
 ```
+
+### Run Log (Unit 9 Milestone 6) - after
+
+| Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
+|---|---|---|---|---|---|---|---|
+| 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. impossible query stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. search result carried into suggest_outfit | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card under 280 characters, names item + outfit | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. regex fallback when model unreachable | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 6. every listing gets a label | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 7. label matches the 20% rule | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 8. too few comparables -> all unknown | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 9. comparables are the same category | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 10. price estimation failure doesn't break the run | 5/5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+**Did it help, and how do I know:**
+
+The changes made helped fix the issue with criterion 9, where the listings used to estimate price are from different categories. A new function is added to only return listing that match the description and are from the same category. With the new function, all listing are from the same category and it was able to pass with 5/5 for all 5 tries.
+
 
 <!-- ═════════════════════════════════════════════════════════════════════
 

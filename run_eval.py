@@ -324,10 +324,13 @@ def _estimate(record):
 
 
 def _comparables(session):
-    from tools import _tokenize, _score_listing
-    from utils.data_loader import load_listings
-    words = set(_tokenize((session.get("parsed") or {}).get("description", "")))
-    return [l for l in load_listings() if words and _score_listing(words, l) > 0]
+    # Recompute exactly what estimate_price priced against: listings matching
+    # the description, in the category of the top search result.
+    from tools import comparable_listings
+    results = session.get("search_results") or []
+    category = results[0].get("category") if results else None
+    description = (session.get("parsed") or {}).get("description", "")
+    return comparable_listings(description, category)
 
 
 def _check_6(record):

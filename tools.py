@@ -160,18 +160,37 @@ DEAL_MARGIN = 0.20
 MIN_COMPARABLES = 3
 
 
-def estimate_price(description: str, listings: list[dict]) -> dict:
+def comparable_listings(description: str, category: str | None = None) -> list[dict]:
+    """
+    Every listing in the dataset that matches `description` and, when given,
+    is in the same `category` — so a tee is only priced against other tops,
+    never against jackets or shoes that happen to share a keyword.
+    """
+    query_words = set(_tokenize(description))
+    if not query_words:
+        return []
+    return [
+        l for l in load_listings()
+        if _score_listing(query_words, l) > 0
+        and (category is None or l.get("category") == category)
+    ]
+
+
+def estimate_price(description: str, listings: list[dict], category: str | None = None) -> dict:
     """
     Estimate what an item like `description` usually costs, then rate each of
     `listings` as a good deal, fair, or overpriced against that estimate.
 
     The typical price is the median price of every listing in the dataset that
-    matches the description — ignoring the user's size and budget filters, so
-    the estimate reflects the whole market, not just what fit their search.
+    matches the description AND is in the same category as the item being
+    rated — ignoring the user's size and budget filters, so the estimate
+    reflects the whole market, not just what fit their search.
 
     Args:
         description: keywords describing the item (e.g. "vintage graphic tee").
         listings:    the listings to rate — usually what search_listings returned.
+        category:    category to compare within. Defaults to the category of
+                     listings[0] (the top result, which the agent selects).
 
     Returns:
         {"typical_price": float | None, "sample_size": int,
@@ -181,11 +200,9 @@ def estimate_price(description: str, listings: list[dict]) -> dict:
         When fewer than MIN_COMPARABLES listings match, typical_price is None
         and every deal is "unknown" — no guessing.
     """
-    query_words = set(_tokenize(description))
-    prices = sorted(
-        l["price"] for l in load_listings()
-        if query_words and _score_listing(query_words, l) > 0
-    )
+    if category is None and listings:
+        category = listings[0].get("category")
+    prices = sorted(l["price"] for l in comparable_listings(description, category))
 
     typical = _median(prices) if len(prices) >= MIN_COMPARABLES else None
 
