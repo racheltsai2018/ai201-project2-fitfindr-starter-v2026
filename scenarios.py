@@ -73,7 +73,44 @@ SCENARIOS = [
         "wardrobe": "example",
         "criterion": 5,
         "model_offline": True,   # run_eval.py makes every model call fail
-    }
+    },
+    {
+        # criterion 6- every listing is labeled
+        "name": "every listing gets a label",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 6,
+    },
+    {
+        # Criterion 7 — each label matches the 20% rule 
+        "name": "label matches the 20% rule",
+        "query": "black leather bomber jacket under $80",
+        "wardrobe": "example",
+        "criterion": 7,
+    },
+    {
+        # Criterion 8 - listing will be labeled unknow if less than 3 listing
+        "name": "too few comparables -> all unknown",
+        "query": "corduroy pants under $100",
+        "wardrobe": "example",
+        "criterion": 8,
+    },
+    {
+        # Criterion 9 — every comparable listing used for typical_price is the
+        # same kind of item as the query
+        "name": "comparables are the same category",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 9,
+    },
+    {
+        # Criterion 10 — estimate_price fails but suggest_outfit and create_fit_card still finish.
+        "name": "price estimation failure doesn't break the run",
+        "query": "denim jacket size S under $50",
+        "wardrobe": "example",
+        "criterion": 10,
+        "price_failure": True,   # run_eval.py makes estimate_price raise
+    },
 ]
 
 WARDROBES = ("example", "empty")

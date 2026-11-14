@@ -63,6 +63,14 @@ def run_once(scenario, use_trace=True):
             raise ModelUnavailable("simulated: model unreachable during parsing")
         agent_module.generate = _unreachable
 
+    # "price_failure": True makes estimate_price (tool 4) raise, to check the
+    # rest of the run survives it. Criterion 10.
+    real_estimate = agent_module.estimate_price
+    if scenario.get("price_failure"):
+        def _broken_estimate(*args, **kwargs):
+            raise RuntimeError("simulated: estimate_price failed")
+        agent_module.estimate_price = _broken_estimate
+
     try:
         record["session"] = run_agent(scenario["query"], wardrobe)
     except Exception as exc:  # noqa: BLE001 — a crash is a result worth logging
@@ -70,6 +78,7 @@ def run_once(scenario, use_trace=True):
         record["traceback"] = traceback.format_exc()
     finally:
         agent_module.generate = real_generate
+        agent_module.estimate_price = real_estimate
 
     if use_trace:
         record["trace"] = trace_module.get_trace()
@@ -123,6 +132,10 @@ def main():
                     print(f"  try {attempt}: completed — fit card {len(card)} chars")
 
         rows.append({"scenario": scenario, "tries": tries})
+        checker = AUTO_CHECKS.get(scenario.get("criterion"))
+        if checker:
+            passes = sum(1 for t in tries if checker(t))
+            print(f"  criterion {scenario['criterion']}: {passes}/{len(tries)} passed")
         print()
 
     write_report(rows, args)
@@ -166,6 +179,14 @@ def write_report(rows, args):
             if number
             else f"{scenario['name']} _(diagnostic — not one of your five)_"
         )
+        checker = AUTO_CHECKS.get(number)
+        if checker:
+            # Criteria 6-10 are deterministic, so they're scored automatically.
+            marks = ["PASS" if checker(t) else "FAIL" for t in row["tries"]]
+            passes = marks.count("PASS")
+            lines.append(f"| {label_text} | 5/5 | {' | '.join(marks)} | "
+                         f"{'MET' if passes == n else 'MISSED'} ({passes}/{n}) |")
+            continue
         lines.append(f"| {label_text} |  | {' | '.join([' '] * n)} |  |")
 
     lines += [
@@ -207,6 +228,9 @@ def write_report(rows, args):
                 f"- search_results: {len(session.get('search_results') or [])}",
                 "",
             ]
+            if session.get("parsed_by"):
+                lines += [f"- parsed_by: {session['parsed_by']} — parsed: {session.get('parsed')}", ""]
+            lines += _price_lines(session)
             if session.get("outfit_suggestion"):
                 lines += ["Outfit suggestion:", "", "```",
                           str(session["outfit_suggestion"]), "```", ""]
@@ -231,6 +255,132 @@ def write_report(rows, args):
             "to run_agent() yet — that's Milestone 2, and the trace is required\n"
             "evidence worth a point."
         )
+
+
+def _expected_label(price, typical):
+    """The 20% rule, recomputed independently of tools.py. Criterion 7."""
+    if price is None or not typical:
+        return "unknown"
+    if price <= typical * 0.8:
+        return "good deal"
+    if price > typical * 1.2:
+        return "overpriced"
+    return "fair"
+
+
+def _price_lines(session):
+    """Price-estimate evidence for criteria 6-10."""
+    est = session.get("price_estimate")
+    if not est:
+        return ["- price_estimate: (none)", ""]
+
+    from tools import _tokenize, _score_listing
+    from utils.data_loader import load_listings
+
+    typical = est.get("typical_price")
+    rated = est.get("rated") or []
+    result_ids = {l.get("id") for l in session.get("search_results") or []}
+    rated_ids = {r.get("id") for r in rated}
+    valid = {"good deal", "fair", "overpriced", "unknown"}
+
+    lines = [
+        f"- typical_price: {typical} (sample_size {est.get('sample_size')})",
+        f"- every search result rated: {result_ids <= rated_ids} "
+        f"({len(rated)} rated / {len(result_ids)} results)",
+        f"- all labels valid: {all(r.get('deal') in valid for r in rated)}",
+        "",
+        "Labels (actual vs. 20% rule):",
+        "",
+        "| id | title | price | deal | expected | match |",
+        "|---|---|---|---|---|---|",
+    ]
+    for r in rated:
+        exp = _expected_label(r.get("price"), typical)
+        lines.append(f"| {r.get('id')} | {r.get('title')} | {r.get('price')} | "
+                     f"{r.get('deal')} | {exp} | {'yes' if exp == r.get('deal') else 'NO'} |")
+
+    # The listings estimate_price used for typical_price. Criterion 9.
+    description = (session.get("parsed") or {}).get("description", "")
+    words = set(_tokenize(description))
+    comps = [l for l in load_listings() if words and _score_listing(words, l) > 0]
+    lines += ["", f"Comparables for '{description}' ({len(comps)}):", ""]
+    lines += [f"- {l.get('title')} — ${l.get('price')}" for l in comps]
+    lines.append("")
+    return lines
+
+
+# ── automatic PASS/FAIL for criteria 6-10 ─────────────────────────────────────
+# These criteria are about estimate_price, which doesn't call a model, so a
+# try can be scored mechanically. Each check takes one try's record.
+
+_VALID_LABELS = {"good deal", "fair", "overpriced", "unknown"}
+
+
+def _estimate(record):
+    if record["crashed"]:
+        return None, None
+    session = record["session"] or {}
+    return session, session.get("price_estimate")
+
+
+def _comparables(session):
+    from tools import _tokenize, _score_listing
+    from utils.data_loader import load_listings
+    words = set(_tokenize((session.get("parsed") or {}).get("description", "")))
+    return [l for l in load_listings() if words and _score_listing(words, l) > 0]
+
+
+def _check_6(record):
+    """Every search result is rated with one of the four labels."""
+    session, est = _estimate(record)
+    if not est:
+        return False
+    rated = est.get("rated") or []
+    result_ids = {l.get("id") for l in session.get("search_results") or []}
+    return (bool(result_ids)
+            and result_ids <= {r.get("id") for r in rated}
+            and all(r.get("deal") in _VALID_LABELS for r in rated))
+
+
+def _check_7(record):
+    """Every label matches the 20% rule against typical_price."""
+    _, est = _estimate(record)
+    if not est or not est.get("rated"):
+        return False
+    typical = est.get("typical_price")
+    return all(_expected_label(r.get("price"), typical) == r.get("deal")
+               for r in est["rated"])
+
+
+def _check_8(record):
+    """Fewer than 3 comparables: typical_price None, all labels 'unknown', no crash."""
+    _, est = _estimate(record)
+    if not est or not est.get("rated"):
+        return False
+    return (est.get("typical_price") is None
+            and est.get("sample_size", 0) < 3
+            and all(r.get("deal") == "unknown" for r in est["rated"]))
+
+
+def _check_9(record):
+    """Every comparable is in the same category as the selected item."""
+    session, est = _estimate(record)
+    if not est:
+        return False
+    category = (session.get("selected_item") or {}).get("category")
+    comps = _comparables(session)
+    return bool(category) and bool(comps) and all(c.get("category") == category for c in comps)
+
+
+def _check_10(record):
+    """estimate_price failed, yet suggest_outfit and create_fit_card finished."""
+    if record["crashed"]:
+        return False
+    session = record["session"] or {}
+    return bool(session.get("outfit_suggestion")) and bool(session.get("fit_card"))
+
+
+AUTO_CHECKS = {6: _check_6, 7: _check_7, 8: _check_8, 9: _check_9, 10: _check_10}
 
 
 if __name__ == "__main__":

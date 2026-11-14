@@ -148,12 +148,31 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
         #estimate typical price and rate each result
         elif next_step == "price_check":
-            session["price_estimate"] = estimate_price(
-                session["parsed"]["description"], session["search_results"]
-            )
-            est = session["price_estimate"]
-            print(f"[estimate_price] typical ${est['typical_price']} from {est['sample_size']} listing(s)")
-            trace.step("estimate_price", inputs={"description": session["parsed"]["description"], "results": len(session["search_results"])}, returned=est)
+            # A failed price estimate must not stop the run: fall back to
+            # "unknown" for every listing and carry on to select.
+            note = ""
+            try:
+                est = estimate_price(
+                    session["parsed"]["description"], session["search_results"]
+                )
+            except Exception as exc:  # noqa: BLE001
+                est = None
+                note = f"estimate_price failed ({type(exc).__name__}: {exc}), labels set to unknown"
+            if not est:
+                note = note or "estimate_price returned nothing, labels set to unknown"
+                est = {
+                    "typical_price": None,
+                    "sample_size": 0,
+                    "rated": [
+                        {"id": l.get("id"), "title": l.get("title"),
+                         "price": l.get("price"), "deal": "unknown"}
+                        for l in session["search_results"]
+                    ],
+                }
+            session["price_estimate"] = est
+            typical = est.get("typical_price")
+            print(f"[estimate_price] typical {'$' + str(typical) if typical is not None else 'unknown'} from {est.get('sample_size', 0)} listing(s)")
+            trace.step("estimate_price", inputs={"description": session["parsed"]["description"], "results": len(session["search_results"])}, returned=est, note=note)
             next_step = "select"
 
         #choose an item
