@@ -1045,6 +1045,32 @@ Trace:
 
 The changes made helped fix the issue with criterion 9, where the listings used to estimate price are from different categories. A new function is added to only return listing that match the description and are from the same category. With the new function, all listing are from the same category and it was able to pass with 5/5 for all 5 tries.
 
+## What's Still Broken
+All criterias from 6 to 10 were all met after the changes were made. The issues from the previous unit still exists. The first issues is when the model becomes unreachable or unavailable, the program will end immediately by sending the message "ModelUnavailable: Couldn't reach the model: simulated: model unreachable". This problem can be solved by adding fallback methods for 'suggest_outfit' and 'create_fit_card' to avoid this issue. Another issue is in the regex method for parsing. Currently, the regex assums that the first number becomes the price ceiling. 
+
+**What I would do next: ** I would add templates for the functions that uses the models, so the users would still get a result even when the model is down. I would make this change because the system current shows that it fails and the user does not any result.
+
+## How I Used AI
+
+<!-- Two specific moments. What you asked, what came back, what you changed.
+
+     "I used Claude to help me code" is not enough.
+
+     "I gave Claude my search_listings spec. It returned None on no match
+     instead of an empty list, so I changed it" is the level we want. -->
+
+**Moment 1**
+
+- *What I asked for:* I asked claude to help me build the extra tool.
+- *What came back:* The 4th tool was added to tools.py.
+- *What I changed:* The 4th tool was added before writing the criterias, so when comparing listing prices, listing from other categories are also included. The fix was made in Milestone 6.
+
+**Moment 2**
+
+- *What I asked for:* I asked Claude to change run_eval.py so I am able to test the new criterias.  
+- *What came back:* The criterias were tested. 
+- *What I changed:* Instead of manually filling out PASS or FAIL. Now running run_eval.py will fillout the table for criterion 6 - 10. 
+
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
