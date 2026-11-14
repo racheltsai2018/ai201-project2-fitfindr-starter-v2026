@@ -599,12 +599,17 @@ One run uses about 1060 gemini tokens. Among the 1060 tokens, about 877 are for 
 
 **Cost for a hundred people a day:**
 Prompt token: 877 token/run x 100 run/day = 87,700 tokens/ day
+
 Output token: 183 token/run x 100 run/day = 18,300 tokens/day
+
 Total token: 1,060 tokens/run x 100 runs/day = 106,000 tokens/day
 
 Prompt cost: 87,700 tokens = $0.0263 / day
+
 Output cost: 18,300 tokens = $0.0458 / day
+
 Daily total: $0.0721 / day
+
 Monthly: $2.163 / month
 
 The model used is Gemini 3.5 Flash-Lite.
